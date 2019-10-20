@@ -44,7 +44,7 @@ object Main {
       stream
         .map { record =>
           JsonMethods.parse(record.value())
-        }.cache()
+        }
         .map { json =>
           (json \ "subreddit_name_prefixed").as[String] -> json
         }
