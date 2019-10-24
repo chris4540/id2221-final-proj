@@ -1,6 +1,7 @@
 version: "3"
 
 services:
+  # kafka module
   zookeeper:
     image: wurstmeister/zookeeper
     ports:
@@ -22,12 +23,15 @@ services:
       KAFKA_CREATE_TOPICS: "posts:1:1,comments:1:1"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+  # reddit scraper
   reddit-client:
     build: "./reddit-client"
     depends_on:
       - kafka
     environment:
       KAFKA_URL: kafka:9094
+    restart: on-failure   # allow restart by itself
+  # statistics database
   influxdb:
     image: influxdb
     ports:
@@ -36,6 +40,7 @@ services:
       INFLUXDB_DB: reddit_stats
       INFLUXDB_ADMIN_USER: admin
       INFLUXDB_ADMIN_USER_PASSWORD: admin
+  # visualization tool
   grafana:
     image: grafana/grafana
     ports:
