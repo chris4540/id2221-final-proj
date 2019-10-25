@@ -23,7 +23,8 @@ import org.apache.spark.streaming.dstream.DStream
  *  2. active user
  *  3. comment rates
  *  4. the trend of interesting topics and/or user
- *  5. type of posted content
+ *  5. type of posted content statistics
+ *  6. Write the streams into database
  */
 
 object Main {
@@ -50,40 +51,35 @@ object Main {
       LocationStrategies.PreferConsistent,
       ConsumerStrategies.Subscribe[String, String](Seq("posts"), mkKafkaParams("post-stream"))
     )
-    // ---------------------------------------------------------------------------
-    // The most active 10 users in the last 10 seconds (comment + post)
-    var activeUserStream = postStream
-          .map(record => JsonMethods.parse(record.value())) // json first
-          .map(json => ((json \ "author").as[String], 1))
-          .reduceByKeyAndWindow((a:Int,b:Int) => (a + b), Seconds(30), Seconds(10))
-          // .transform{ rdd => rdd.takeOrdered(10)(im)}
-          // .foreachRDD(_.collect().foreach(println))
-          // .map()
-          // .reduceByKey(_+_)
-          // .reduceByKeyAndWindow(_ + _, Seconds(10), Seconds(10))
-          // .groupByKeyAndWindow(Seconds(10), Seconds(10))
 
+    val jsonPostStream = postStream.map(record => JsonMethods.parse(record.value()))
+    val jsonCommentStream = commentStream.map(record => JsonMethods.parse(record.value()))
+    // -----------------------------------------------------------------------
+    // 2. active user
+    // The most active 10 users in a period of time (comment + post)
+    // var activePostUserStream = jsonPostStream
+    // .map(json => ((json \ "author").as[String], 1))
 
+    // var activeCommentUserStream = jsonCommentStream
+    // .map(json => ((json \ "author").as[String], 1))
 
+    // var activeUserStream = activePostUserStream.fullOuterJoin(activeCommentUserStream)
+    // .map{case (s:String, (a:Option[Int], b:Option[Int])) => (s, a.getOrElse(0) + b.getOrElse(0))}
+    // .reduceByKeyAndWindow((a:Int, b:Int) => (a + b), Seconds(60), Seconds(10))
+    // .transform(rdd => {
+    //   // This is a bit complicated. as transform required to return RDD
+    //   // We use takeOrdered to have a list and filter RDDs of this window
+    //   // of DStream
+    //   val arr = rdd.takeOrdered(10)(Ordering[Int].reverse.on(x => x._2))
+    //   rdd.filter(arr.contains)
+    // })
 
-
-    // var testStream = postStream
-    //       .map { record =>{
-    //         // print(record.key())
-    //         JsonMethods.parse(record.value())
-    //         }
-    //       }
-    //       .map { json =>   // create key-value pairs
-    //         (json \ "subreddit_name_prefixed").as[String] -> json
-    //       }
-    //       .groupByKeyAndWindow(Seconds(10), Seconds(10)).map{ case( k, v) =>
-    //         k
-    //       }
-    //       .foreachRDD { rdd =>
-    //         print(rdd.collect().last)
-    //       }
-
-
+    // println("-----------------------")
+    // println("Top 10 active users")
+    // activeUserStream.print()
+    // println("-----------------------")
+    // ---------------------------------------------------------------------------------------
+    // 3. Comment rate according processing time
     // /**
     //  * Save the discrete stree to influx database
     //  *
@@ -108,9 +104,23 @@ object Main {
     //       { e => e.printStackTrace() },
     //       { e => e.printStackTrace() }
     //     )))
-
     // saveRatesToInflux(commentStream, "comment_rate")
     // saveRatesToInflux(postStream, "post_rate")
+    // -------------------------------------------------------------------------
+    // 5. type of posted content statistics
+    var titlePostTypeStream = jsonPostStream
+    .map(json => {
+      val k: String = (json \ "title").as[String]
+      val is_video: Boolean = (json \ "is_video").as[Boolean]
+      (k, is_video)
+    })
+    .map{case(k, is_video) => (k, if (is_video) "video" else "text")}
+
+    var windowCountPerMinutes = titlePostTypeStream
+    .map{case (k, v) => (v, 1)}
+    .reduceByKeyAndWindow((a:Int, b:Int) => (a + b), Seconds(60), Seconds(10))
+    windowCountPerMinutes.print()
+    // -------------------------------------------------------------------------
 
     ssc.start()
     ssc.awaitTermination()
