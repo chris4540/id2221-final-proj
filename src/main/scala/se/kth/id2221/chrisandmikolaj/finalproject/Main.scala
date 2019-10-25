@@ -19,11 +19,11 @@ import org.apache.spark.streaming.dstream.DStream
 
 /*
  * Objective:
- *  1. current popular post
- *  2. active user
- *  3. comment rates
- *  4. the trend of interesting topics and/or user
- *  5. type of posted content statistics
+ *  1. current popular post [Done]
+ *  2. active user [Done]
+ *  3. comment rates [Done]
+ *  4. the trend of interesting topics and/or user [Deleted; Hard to do or find replacement]
+ *  5. type of posted content statistics [Done]
  *  6. Write the streams into database
  */
 
@@ -55,29 +55,45 @@ object Main {
     val jsonPostStream = postStream.map(record => JsonMethods.parse(record.value()))
     val jsonCommentStream = commentStream.map(record => JsonMethods.parse(record.value()))
     // -----------------------------------------------------------------------
+    // 1. Topic trend according to comment permalink count; Count Last 30 mins, update every 30s
+    var replyCount = jsonCommentStream
+    .map(json => (json \ "permalink").as[String])
+    .map(k => (k, 1))
+    .reduceByKeyAndWindow((a: Int, b:Int) => (a + b), Seconds(1800), Seconds(30))  // trend over last hr, update per minutes
+
+    val topTenTread = replyCount
+      .transform(rdd => {
+        // This is a bit complicated. as transform required to return RDD
+        // We use takeOrdered to have a list and filter RDDs of this window
+        // of DStream
+        val arr = rdd.takeOrdered(10)(Ordering[Int].reverse.on(x => x._2))
+        rdd.filter(arr.contains)
+    })
+    topTenTread.print()
+    // -----------------------------------------------------------------------
     // 2. active user
     // The most active 10 users in a period of time (comment + post)
-    // var activePostUserStream = jsonPostStream
-    // .map(json => ((json \ "author").as[String], 1))
+    var activePostUserStream = jsonPostStream
+    .map(json => ((json \ "author").as[String], 1))
 
-    // var activeCommentUserStream = jsonCommentStream
-    // .map(json => ((json \ "author").as[String], 1))
+    var activeCommentUserStream = jsonCommentStream
+    .map(json => ((json \ "author").as[String], 1))
 
-    // var activeUserStream = activePostUserStream.fullOuterJoin(activeCommentUserStream)
-    // .map{case (s:String, (a:Option[Int], b:Option[Int])) => (s, a.getOrElse(0) + b.getOrElse(0))}
-    // .reduceByKeyAndWindow((a:Int, b:Int) => (a + b), Seconds(60), Seconds(10))
-    // .transform(rdd => {
-    //   // This is a bit complicated. as transform required to return RDD
-    //   // We use takeOrdered to have a list and filter RDDs of this window
-    //   // of DStream
-    //   val arr = rdd.takeOrdered(10)(Ordering[Int].reverse.on(x => x._2))
-    //   rdd.filter(arr.contains)
-    // })
+    var activeUserStream = activePostUserStream.fullOuterJoin(activeCommentUserStream)
+    .map{case (s:String, (a:Option[Int], b:Option[Int])) => (s, a.getOrElse(0) + b.getOrElse(0))}
+    .reduceByKeyAndWindow((a:Int, b:Int) => (a + b), Seconds(60), Seconds(10))
+    .transform(rdd => {
+      // This is a bit complicated. as transform required to return RDD
+      // We use takeOrdered to have a list and filter RDDs of this window
+      // of DStream
+      val arr = rdd.takeOrdered(10)(Ordering[Int].reverse.on(x => x._2))
+      rdd.filter(arr.contains)
+    })
 
-    // println("-----------------------")
-    // println("Top 10 active users")
-    // activeUserStream.print()
-    // println("-----------------------")
+    println("-----------------------")
+    println("Top 10 active users")
+    activeUserStream.print()
+    println("-----------------------")
     // ---------------------------------------------------------------------------------------
     // 3. Comment rate according processing time
     // /**
@@ -118,7 +134,7 @@ object Main {
 
     var windowCountPerMinutes = titlePostTypeStream
     .map{case (k, v) => (v, 1)}
-    .reduceByKeyAndWindow((a:Int, b:Int) => (a + b), Seconds(60), Seconds(10))
+    .reduceByKeyAndWindow((a:Int, b:Int) => (a + b), Seconds(60), Seconds(10))  // moving avg
     windowCountPerMinutes.print()
     // -------------------------------------------------------------------------
 
