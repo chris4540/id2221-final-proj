@@ -50,41 +50,74 @@ object Main {
       LocationStrategies.PreferConsistent,
       ConsumerStrategies.Subscribe[String, String](Seq("posts"), mkKafkaParams("post-stream"))
     )
+    // ---------------------------------------------------------------------------
+    // The most active 10 users in the last 10 seconds (comment + post)
+    var activeUserStream = postStream
+          .map(record => JsonMethods.parse(record.value())) // json first
+          .map(json => ((json \ "author").as[String], 1))
+          .reduceByKeyAndWindow((a:Int,b:Int) => (a + b), Seconds(30), Seconds(10))
+          // .transform{ rdd => rdd.takeOrdered(10)(im)}
+          // .foreachRDD(_.collect().foreach(println))
+          // .map()
+          // .reduceByKey(_+_)
+          // .reduceByKeyAndWindow(_ + _, Seconds(10), Seconds(10))
+          // .groupByKeyAndWindow(Seconds(10), Seconds(10))
 
-    /**
-     * Save the discrete stree to influx database
-     *
-     * @param stream The stream
-     * @param measurementName
-     */
-    def saveRatesToInflux(stream: DStream[ConsumerRecord[String, String]], measurementName: String): Unit =
-      stream
-        .map { record =>
-          JsonMethods.parse(record.value())
-        }
-        .map { json =>   // create key-value pairs
-          (json \ "subreddit_name_prefixed").as[String] -> json
-        }
-        .groupByKeyAndWindow(Seconds(10), Seconds(10))
-        .map { case (subreddit, jsons) =>
-          val nanos = Instant.now().toEpochMilli * 1000000
-          RedditRate(measurementName, subreddit, jsons.size, nanos)
-        }
-        .saveToInfluxDB("reddit_stats", measurementName, ch = Some(CallbackHandler(
-          { _ => println("pushed to influx") },
-          { e => e.printStackTrace() },
-          { e => e.printStackTrace() }
-        )))
 
-    saveRatesToInflux(commentStream, "comment_rate")
-    saveRatesToInflux(postStream, "post_rate")
+
+
+
+    // var testStream = postStream
+    //       .map { record =>{
+    //         // print(record.key())
+    //         JsonMethods.parse(record.value())
+    //         }
+    //       }
+    //       .map { json =>   // create key-value pairs
+    //         (json \ "subreddit_name_prefixed").as[String] -> json
+    //       }
+    //       .groupByKeyAndWindow(Seconds(10), Seconds(10)).map{ case( k, v) =>
+    //         k
+    //       }
+    //       .foreachRDD { rdd =>
+    //         print(rdd.collect().last)
+    //       }
+
+
+    // /**
+    //  * Save the discrete stree to influx database
+    //  *
+    //  * @param stream The stream
+    //  * @param measurementName
+    //  */
+    // def saveRatesToInflux(stream: DStream[ConsumerRecord[String, String]], measurementName: String): Unit =
+    //   stream
+    //     .map { record =>
+    //       JsonMethods.parse(record.value())
+    //     }
+    //     .map { json =>   // create key-value pairs
+    //       (json \ "subreddit_name_prefixed").as[String] -> json
+    //     }
+    //     .groupByKeyAndWindow(Seconds(10), Seconds(10))
+    //     .map { case (subreddit, jsons) =>
+    //       val nanos = Instant.now().toEpochMilli * 1000000
+    //       RedditRate(measurementName, subreddit, jsons.size, nanos)
+    //     }
+    //     .saveToInfluxDB("reddit_stats", measurementName, ch = Some(CallbackHandler(
+    //       { _ => println("pushed to influx") },
+    //       { e => e.printStackTrace() },
+    //       { e => e.printStackTrace() }
+    //     )))
+
+    // saveRatesToInflux(commentStream, "comment_rate")
+    // saveRatesToInflux(postStream, "post_rate")
 
     ssc.start()
     ssc.awaitTermination()
   }
 
   def mkKafkaParams(groupId: String): Map[String, AnyRef] = Map[String, AnyRef](
-    "bootstrap.servers" -> sys.env.getOrElse("KAFKA_URL", "kafka:9094"),
+    "bootstrap.servers" -> sys.env.getOrElse("KAFKA_URL", "kafka:9092"),
     "key.deserializer" -> classOf[StringDeserializer],
     "value.deserializer" -> classOf[StringDeserializer],
     "group.id" -> groupId,
