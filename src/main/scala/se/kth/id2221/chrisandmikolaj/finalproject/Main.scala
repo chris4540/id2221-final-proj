@@ -17,10 +17,21 @@ import scala.util.Try
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.streaming.dstream.DStream
 
+/*
+ * Objective:
+ *  1. current popular post
+ *  2. active user
+ *  3. comment rates
+ *  4. the trend of interesting topics and/or user
+ *  5. type of posted content
+ */
+
 object Main {
   def main(args: Array[String]): Unit = {
+
     val conf = new SparkConf().setMaster("local[*]").setAppName("id2221-chris-and-mikolaj-final-project")
     val ssc = new StreamingContext(conf, Seconds(1))
+
     implicit val influxConfig: InfluxConfig = InfluxConfig(
       host = sys.env.getOrElse("INFLUXDB_HOST", "influxdb"),
       port = sys.env.getOrElse("INFLUXDB_PORT", "8086").toInt,
@@ -40,12 +51,18 @@ object Main {
       ConsumerStrategies.Subscribe[String, String](Seq("posts"), mkKafkaParams("post-stream"))
     )
 
+    /**
+     * Save the discrete stree to influx database
+     *
+     * @param stream The stream
+     * @param measurementName
+     */
     def saveRatesToInflux(stream: DStream[ConsumerRecord[String, String]], measurementName: String): Unit =
       stream
         .map { record =>
           JsonMethods.parse(record.value())
         }
-        .map { json =>
+        .map { json =>   // create key-value pairs
           (json \ "subreddit_name_prefixed").as[String] -> json
         }
         .groupByKeyAndWindow(Seconds(10), Seconds(10))
