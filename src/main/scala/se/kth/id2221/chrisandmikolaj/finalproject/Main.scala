@@ -25,6 +25,7 @@ import org.apache.spark.streaming.dstream.DStream
  *  4. the trend of interesting topics and/or user [Deleted; Hard to do or find replacement]
  *  5. type of posted content statistics [Done]
  *  6. Write the streams into database
+ *  TODO: Check item 4
  */
 
 object Main {
@@ -59,7 +60,7 @@ object Main {
     var replyCount = jsonCommentStream
     .map(json => (json \ "permalink").as[String])
     .map(k => (k, 1))
-    .reduceByKeyAndWindow((a: Int, b:Int) => (a + b), Seconds(1800), Seconds(30))  // trend over last hr, update per minutes
+    .reduceByKeyAndWindow((a: Int, b:Int) => (a + b), Minutes(30), Seconds(30))  // trend over last hr, update per minutes
 
     val topTenTread = replyCount
       .transform(rdd => {
@@ -81,7 +82,7 @@ object Main {
 
     var activeUserStream = activePostUserStream.fullOuterJoin(activeCommentUserStream)
     .map{case (s:String, (a:Option[Int], b:Option[Int])) => (s, a.getOrElse(0) + b.getOrElse(0))}
-    .reduceByKeyAndWindow((a:Int, b:Int) => (a + b), Seconds(60), Seconds(10))
+    .reduceByKeyAndWindow((a:Int, b:Int) => (a + b), Minutes(30), Seconds(10))
     .transform(rdd => {
       // This is a bit complicated. as transform required to return RDD
       // We use takeOrdered to have a list and filter RDDs of this window
