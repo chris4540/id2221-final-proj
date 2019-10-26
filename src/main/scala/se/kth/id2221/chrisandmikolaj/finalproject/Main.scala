@@ -1,21 +1,19 @@
 package se.kth.id2221.chrisandmikolaj.finalproject
 
-import java.time.Instant
-
-import com.github.fsanaulla.chronicler.core.model.{InfluxCredentials, InfluxWriter, Point}
-import com.github.fsanaulla.chronicler.spark.core.CallbackHandler
+import com.paulgoldbaum.influxdbclient._
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.spark.SparkConf
+import org.apache.spark.streaming.dstream.DStream
 import org.apache.spark.streaming.kafka010.{ConsumerStrategies, KafkaUtils, LocationStrategies}
 import org.apache.spark.streaming.{Minutes, Seconds, StreamingContext}
-import org.json4s.jackson.JsonMethods
 import org.json4s.DefaultReaders._
-import com.github.fsanaulla.chronicler.spark.streaming._
-import com.github.fsanaulla.chronicler.urlhttp.shared.InfluxConfig
+import org.json4s.JValue
+import org.json4s.jackson.JsonMethods
+import se.kth.id2221.chrisandmikolaj.finalproject.util._
+import se.kth.id2221.chrisandmikolaj.finalproject.data._
 
 import scala.util.Try
-import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.spark.streaming.dstream.DStream
 
 /*
  * Objective:
@@ -31,15 +29,13 @@ import org.apache.spark.streaming.dstream.DStream
 object Main {
   def main(args: Array[String]): Unit = {
 
-    val conf = new SparkConf().setMaster("local[*]").setAppName("id2221-chris-and-mikolaj-final-project")
+    val conf = new SparkConf()
+      .setMaster("local[*]")
+      .setAppName("id2221-chris-and-mikolaj-final-project")
     val ssc = new StreamingContext(conf, Seconds(1))
 
-    implicit val influxConfig: InfluxConfig = InfluxConfig(
-      host = sys.env.getOrElse("INFLUXDB_HOST", "influxdb"),
-      port = sys.env.getOrElse("INFLUXDB_PORT", "8086").toInt,
-      credentials = Some(InfluxCredentials(username = "admin", password = "admin")),
-      compress = false
-    )
+    implicit val influxConfig: InfluxConfig = InfluxConfig.fromEnv
+    val database = "reddit_stats"
 
     val commentStream = KafkaUtils.createDirectStream[String, String](
       ssc,
@@ -55,88 +51,72 @@ object Main {
 
     val jsonPostStream = postStream.map(record => JsonMethods.parse(record.value()))
     val jsonCommentStream = commentStream.map(record => JsonMethods.parse(record.value()))
+
+    @inline def getSubreddit(postOrCommentJson: JValue): String =
+      (postOrCommentJson \ "subreddit_name_prefixed").as[String]
+
     // -----------------------------------------------------------------------
     // 1. Topic trend according to comment permalink count; Count Last 30 mins, update every 30s
-    var replyCount = jsonCommentStream
-    .map(json => (json \ "permalink").as[String])
-    .map(k => (k, 1))
-    .reduceByKeyAndWindow((a: Int, b:Int) => (a + b), Minutes(30), Seconds(30))  // trend over last hr, update per minutes
+    jsonCommentStream
+      .map { json =>
+        val permalink = (json \ "permalink").as[String]
+        val subreddit = getSubreddit(json)
+        permalink -> TrendingPost(permalink, subreddit, 1)
+      }
+      .reduceByKeyAndWindow((a: TrendingPost, b: TrendingPost) => a + b, Minutes(30), Seconds(30))
+      .map(_._2)
+      .saveToInfluxDb(database, "trending_post")
 
-    val topTenTread = replyCount
-      .transform(rdd => {
-        // This is a bit complicated. as transform required to return RDD
-        // We use takeOrdered to have a list and filter RDDs of this window
-        // of DStream
-        val arr = rdd.takeOrdered(10)(Ordering[Int].reverse.on(x => x._2))
-        rdd.filter(arr.contains)
-    })
-    topTenTread.print()
     // -----------------------------------------------------------------------
     // 2. active user
     // The most active 10 users in a period of time (comment + post)
-    var activePostUserStream = jsonPostStream
-    .map(json => ((json \ "author").as[String], 1))
+    val extractActivity = { json: JValue =>
+      val username = (json \ "author").as[String]
+      username -> ActiveUser(username, 1)
+    }
 
-    var activeCommentUserStream = jsonCommentStream
-    .map(json => ((json \ "author").as[String], 1))
+    val activePostUserStream = jsonPostStream.map(extractActivity)
+    val activeCommentUserStream = jsonCommentStream.map(extractActivity)
 
-    var activeUserStream = activePostUserStream.fullOuterJoin(activeCommentUserStream)
-    .map{case (s:String, (a:Option[Int], b:Option[Int])) => (s, a.getOrElse(0) + b.getOrElse(0))}
-    .reduceByKeyAndWindow((a:Int, b:Int) => (a + b), Minutes(30), Seconds(10))
-    .transform(rdd => {
-      // This is a bit complicated. as transform required to return RDD
-      // We use takeOrdered to have a list and filter RDDs of this window
-      // of DStream
-      val arr = rdd.takeOrdered(10)(Ordering[Int].reverse.on(x => x._2))
-      rdd.filter(arr.contains)
-    })
+    activePostUserStream.union(activeCommentUserStream)
+      .reduceByKeyAndWindow((a: ActiveUser, b: ActiveUser) => a + b, Minutes(30), Seconds(10))
+      .map(_._2)
+      .saveToInfluxDb(database, "active_user")
 
-    println("-----------------------")
-    println("Top 10 active users")
-    activeUserStream.print()
-    println("-----------------------")
     // ---------------------------------------------------------------------------------------
     // 3. Comment rate according processing time
-    // /**
-    //  * Save the discrete stree to influx database
-    //  *
-    //  * @param stream The stream
-    //  * @param measurementName
-    //  */
-    // def saveRatesToInflux(stream: DStream[ConsumerRecord[String, String]], measurementName: String): Unit =
-    //   stream
-    //     .map { record =>
-    //       JsonMethods.parse(record.value())
-    //     }
-    //     .map { json =>   // create key-value pairs
-    //       (json \ "subreddit_name_prefixed").as[String] -> json
-    //     }
-    //     .groupByKeyAndWindow(Seconds(10), Seconds(10))
-    //     .map { case (subreddit, jsons) =>
-    //       val nanos = Instant.now().toEpochMilli * 1000000
-    //       RedditRate(measurementName, subreddit, jsons.size, nanos)
-    //     }
-    //     .saveToInfluxDB("reddit_stats", measurementName, ch = Some(CallbackHandler(
-    //       { _ => println("pushed to influx") },
-    //       { e => e.printStackTrace() },
-    //       { e => e.printStackTrace() }
-    //     )))
-    // saveRatesToInflux(commentStream, "comment_rate")
-    // saveRatesToInflux(postStream, "post_rate")
+    def saveRatesToInflux(stream: DStream[ConsumerRecord[String, String]], measurementName: String): Unit =
+      stream
+        .map { record =>
+          JsonMethods.parse(record.value())
+        }
+        .map { json =>
+          getSubreddit(json) -> json
+        }
+        .groupByKeyAndWindow(Minutes(1), Seconds(30))
+        .map { case (subreddit, jsons) =>
+          RedditRate(subreddit, jsons.size)
+        }
+        .saveToInfluxDb(database, measurementName)
+
+    saveRatesToInflux(commentStream, "comment_rate")
+    saveRatesToInflux(postStream, "post_rate")
+
     // -------------------------------------------------------------------------
     // 5. type of posted content statistics
-    var titlePostTypeStream = jsonPostStream
-    .map(json => {
-      val k: String = (json \ "title").as[String]
-      val is_video: Boolean = (json \ "is_video").as[Boolean]
-      (k, is_video)
-    })
-    .map{case(k, is_video) => (k, if (is_video) "video" else "text")}
+    jsonPostStream
+      .map(json => {
+        val isVideo = Try((json \ "is_video").as[Boolean]).getOrElse(false)
+        val isSelf = Try((json \ "is_self").as[Boolean]).getOrElse(false)
+        var typeHint = Try((json \ "post_hint").as[String]).getOrElse(null)
+        if (typeHint == "hosted:video" || typeHint == "rich:video") typeHint = "video"
+        val typ = if (typeHint != null) typeHint else if (isSelf) "self" else if (isVideo) "video" else "unknown"
+        typ -> TypeCount(typ, 1)
+      })
+      .reduceByKeyAndWindow((a: TypeCount, b: TypeCount) => a + b, Seconds(60), Seconds(10))
+      .map(_._2)
+      .saveToInfluxDb(database, "type_count")
 
-    var windowCountPerMinutes = titlePostTypeStream
-    .map{case (k, v) => (v, 1)}
-    .reduceByKeyAndWindow((a:Int, b:Int) => (a + b), Seconds(60), Seconds(10))  // moving avg
-    windowCountPerMinutes.print()
     // -------------------------------------------------------------------------
 
     ssc.start()
@@ -151,14 +131,5 @@ object Main {
     "auto.offset.reset" -> "latest",
     "enable.auto.commit" -> (true: java.lang.Boolean)
   )
-}
-
-final case class RedditRate(measurementName: String, subreddit: String, rate: Int, timestamp: Long)
-
-object RedditRate {
-  implicit val writer: InfluxWriter[RedditRate] = { rate =>
-    // TODO: change InfluxDB library, because this one kinda sucks - I have to write stuff like the line below
-    Right(s"subreddit=${rate.subreddit} rate=${rate.rate} ${rate.timestamp}")
-  }
 }
 
