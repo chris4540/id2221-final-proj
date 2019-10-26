@@ -118,6 +118,32 @@ object Main {
       .saveToInfluxDb(database, "type_count")
 
     // -------------------------------------------------------------------------
+    // 6. Word cloud use
+    //  remove few common stop words; static
+    val stopWords = Set("are", "is", "i", "can", "he", "she", "has")
+    var postWords = jsonPostStream
+    .map(json => ((json \ "title").as[String], (json \ "selftext").as[String]))
+    .map{case(a:String, b:String) => s"$a $b"}
+    .flatMap(_.split(" "))
+    .map(_.toLowerCase())
+    .filter(!stopWords.contains(_))
+    .map(w => (w, 1))
+
+    var commentWords = jsonCommentStream
+    .map(json => ((json \ "body").as[String]))
+    .flatMap(_.split(" "))
+    .map(_.toLowerCase())
+    .filter(!stopWords.contains(_))
+    .map(w => (w, 1))
+
+    // join two stream and
+    var words = postWords.cogroup(commentWords)
+    .map{case(s, (arr1, arr2)) => (s, arr1.sum + arr2.sum)}
+    .reduceByKeyAndWindow((a: Int, b:Int) => (a + b), Seconds(10), Seconds(10))
+    .filter{ case(s, i) => i > 5}
+    // -------------------------------------------------------------------------
+
+    words.print()
 
     ssc.start()
     ssc.awaitTermination()
