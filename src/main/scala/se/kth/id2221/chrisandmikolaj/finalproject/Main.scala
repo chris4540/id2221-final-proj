@@ -143,8 +143,6 @@ object Main {
     .filter{ case(s, i) => i > 5}
     // -------------------------------------------------------------------------
 
-    words.print()
-
     ssc.start()
     ssc.awaitTermination()
   }
