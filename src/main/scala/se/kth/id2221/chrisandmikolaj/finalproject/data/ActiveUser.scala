@@ -12,7 +12,6 @@ object ActiveUser {
     case (ActiveUser(username, activityCount), meas) =>
       Point(meas)
         .addTag("username", username)
-        .addField("username", username) // field because we want to get it from the database, not as a filtering metadata
         .addField("activity_count", activityCount)
   }
 }

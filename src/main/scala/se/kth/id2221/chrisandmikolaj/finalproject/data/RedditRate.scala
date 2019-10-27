@@ -7,6 +7,9 @@ case class RedditRate(subreddit: String, count: Int)
 
 object RedditRate {
   implicit val redditRateToPoint: ToPoint[RedditRate] = {
-    case (RedditRate(subreddit, count), meas) => Point(meas).addTag("subreddit", subreddit).addField("count", count)
+    case (RedditRate(subreddit, count), meas) =>
+      Point(meas)
+        .addTag("subreddit", subreddit)
+        .addField("count", count)
   }
 }

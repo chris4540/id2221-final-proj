@@ -10,6 +10,8 @@ case class TypeCount(typ: String, count: Int) {
 object TypeCount {
   implicit val typeCountToPoint: ToPoint[TypeCount] = {
     case (TypeCount(typ, count), meas) =>
-      Point(meas).addTag("type", typ).addField("count", count)
+      Point(meas)
+        .addTag("type", typ)
+        .addField("count", count)
   }
 }
