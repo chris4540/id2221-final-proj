@@ -8,6 +8,7 @@ to the JVM side of things
 * `./src/` - sources directory of the scala spark application
 * `./reddit-client/` - directory containing the sources of a small reddit scraper that feeds the data straight to a 
 kafka message queue
+* `./init-data/` - directory for initialization data, right now mostly just grafana configuration files
 * `./docker-compose.yml` - a docker-compose file that describes all the services needed to run this project
 
 ## Running
@@ -28,9 +29,14 @@ To check if all the data is properly pushed from the python reddit scrapers to k
 docker run -it --rm --network id2221-final-project_default confluentinc/cp-kafkacat kafkacat -b kafka:9094 -C -t <TOPIC>
 ```
 where `<TOPIC>` is one of `comments`, `posts`. The command will start reading the given topic and printing the messages
-into your terminal.
+into your terminal. The network name `id2221-final-project_default` depends on where your project is located in the
+file system, you may need to change that in the command above.
 
 To kill and remove any containers created by docker-compose, run
 ```bash
 docker-compose down
 ```
+
+To see the grafana dashboard, open [`http://localhost:3000`](http://localhost:3000) in your favorite web browser and log
+in using `admin` for both username and password. The actual dashboard should be listed in the "Recently viewed 
+dashboards" panel.
