@@ -17,7 +17,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1572132240983,
+  "iteration": 1572139967004,
   "links": [],
   "panels": [
     {
@@ -29,7 +29,7 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 0
@@ -76,7 +76,7 @@
             },
             {
               "params": [
-                "previous"
+                "none"
               ],
               "type": "fill"
             }
@@ -161,7 +161,7 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 12,
         "y": 0
@@ -275,6 +275,399 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 8,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "[[tag_subreddit]]",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "subreddit"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "none"
+              ],
+              "type": "fill"
+            }
+          ],
+          "measurement": "post_rate",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "count"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "subreddit",
+              "operator": "=~",
+              "value": "/^$subreddit$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Post Rate",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "cacheTimeout": null,
+      "columns": [],
+      "datasource": null,
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 6,
+      "interval": "30m",
+      "links": [],
+      "options": {},
+      "pageSize": null,
+      "showHeader": true,
+      "sort": {
+        "col": 1,
+        "desc": true
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "date"
+        },
+        {
+          "alias": "# actions",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 1,
+          "pattern": "top",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "Username",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": true,
+          "linkTargetBlank": true,
+          "linkTooltip": "Go to reddit overview of /u/${__cell}",
+          "linkUrl": "https://www.reddit.com/user/${__cell}",
+          "mappingType": 1,
+          "pattern": "username",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "username"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "none"
+              ],
+              "type": "fill"
+            }
+          ],
+          "measurement": "active_user",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT top(\"activity_count\", \"username\", 10) FROM \"active_user\" WHERE $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "table",
+          "select": [
+            [
+              {
+                "params": [
+                  "username"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "first"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "activity_count"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "username",
+              "operator": "<>",
+              "value": "AutoModerator"
+            }
+          ]
+        }
+      ],
+      "timeFrom": "30s",
+      "timeShift": null,
+      "title": "Most Active User (past 30 min)",
+      "transform": "table",
+      "type": "table"
+    },
+    {
+      "cacheTimeout": null,
+      "columns": [],
+      "datasource": "InfluxDB",
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 10,
+      "interval": "30s",
+      "links": [],
+      "options": {},
+      "pageSize": null,
+      "showHeader": true,
+      "sort": {
+        "col": 1,
+        "desc": true
+      },
+      "styles": [
+        {
+          "alias": "",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "Time",
+          "thresholds": [],
+          "type": "date",
+          "unit": "short"
+        },
+        {
+          "alias": "# recent comments",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 0,
+          "pattern": "top",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "Link",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": true,
+          "linkTargetBlank": true,
+          "linkTooltip": "Go to post",
+          "linkUrl": "${__cell:raw}",
+          "mappingType": 1,
+          "pattern": "permalink",
+          "preserveFormat": false,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "string",
+          "unit": "short",
+          "valueMaps": []
+        }
+      ],
+      "targets": [
+        {
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "permalink"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "measurement": "trending_post",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT top(\"comment_count\", 10), \"permalink\" FROM \"trending_post\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "table",
+          "select": [
+            [
+              {
+                "params": [
+                  "comment_count"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [
+                  "10"
+                ],
+                "type": "top"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "timeFrom": "30s",
+      "timeShift": null,
+      "title": "Most Active Post",
+      "transform": "table",
+      "type": "table"
     }
   ],
   "refresh": "5s",
@@ -287,12 +680,17 @@
         "allValue": null,
         "current": {
           "tags": [],
-          "text": "r/AskReddit + r/europe + r/me_irl + r/politics",
+          "text": "r/AmItheAsshole + r/AskReddit + r/CFB + r/dankmemes + r/heat + r/memes + r/modernwarfare + r/politics + r/teenagers",
           "value": [
+            "r/AmItheAsshole",
             "r/AskReddit",
-            "r/europe",
-            "r/me_irl",
-            "r/politics"
+            "r/CFB",
+            "r/dankmemes",
+            "r/heat",
+            "r/memes",
+            "r/modernwarfare",
+            "r/politics",
+            "r/teenagers"
           ]
         },
         "datasource": "InfluxDB",
@@ -774,7 +1172,7 @@
             "value": "r/AllHail"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "r/AmItheAsshole",
             "value": "r/AmItheAsshole"
           },
@@ -2149,7 +2547,7 @@
             "value": "r/CCW"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "r/CFB",
             "value": "r/CFB"
           },
@@ -13514,7 +13912,7 @@
             "value": "r/dankmemer"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "r/dankmemes",
             "value": "r/dankmemes"
           },
@@ -14174,7 +14572,7 @@
             "value": "r/eu4"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "r/europe",
             "value": "r/europe"
           },
@@ -15334,7 +15732,7 @@
             "value": "r/hearthstone"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "r/heat",
             "value": "r/heat"
           },
@@ -16814,7 +17212,7 @@
             "value": "r/mazdaspeed3"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "r/me_irl",
             "value": "r/me_irl"
           },
@@ -16894,7 +17292,7 @@
             "value": "r/memeconvention"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "r/memes",
             "value": "r/memes"
           },
@@ -17069,7 +17467,7 @@
             "value": "r/moderatepolitics"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "r/modernwarfare",
             "value": "r/modernwarfare"
           },
@@ -19734,7 +20132,7 @@
             "value": "r/techwearclothing"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "r/teenagers",
             "value": "r/teenagers"
           },
@@ -21313,5 +21711,5 @@
   "timezone": "",
   "title": "Reddit Stats",
   "uid": "nsNWHIAZz",
-  "version": 4
+  "version": 3
 }

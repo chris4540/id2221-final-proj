@@ -59,7 +59,7 @@ object Main {
     // 1. Topic trend according to comment permalink count; Count Last 30 mins, update every 30s
     jsonCommentStream
       .map { json =>
-        val permalink = (json \ "permalink").as[String]
+        val permalink = (json \ "link_permalink").as[String]
         val subreddit = getSubreddit(json)
         permalink -> TrendingPost(permalink, subreddit, 1)
       }
