@@ -1,5 +1,6 @@
 package se.kth.id2221.chrisandmikolaj.finalproject
 
+import ch.qos.logback.classic.Logger
 import com.paulgoldbaum.influxdbclient._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -10,6 +11,7 @@ import org.apache.spark.streaming.{Minutes, Seconds, StreamingContext}
 import org.json4s.DefaultReaders._
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods
+import org.slf4j.LoggerFactory
 import se.kth.id2221.chrisandmikolaj.finalproject.util._
 import se.kth.id2221.chrisandmikolaj.finalproject.data._
 
@@ -28,6 +30,7 @@ import scala.util.Try
 
 object Main {
   def main(args: Array[String]): Unit = {
+    val logger = LoggerFactory.getLogger(Main.getClass)
 
     val conf = new SparkConf()
       .setMaster("local[*]")
@@ -134,11 +137,12 @@ object Main {
       .filter(!stopWords.contains(_))
       .map(w => (w, 1))
       .reduceByKeyAndWindow((a: Int, b: Int) => a + b, Seconds(10), Seconds(10))
-      .filter { case (_, i) => i > 5 }
+      .filter { case (w, i) => i > 5 && !w.isEmpty }
       .map((WordFrequency.apply _).tupled)
       .saveToInfluxDb(database, "word_frequency")
     // -------------------------------------------------------------------------
 
+    logger.info("Starting Spark jobs")
     ssc.start()
     ssc.awaitTermination()
   }
