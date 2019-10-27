@@ -10,3 +10,5 @@ libraryDependencies += "org.apache.spark" %% "spark-streaming-kafka-0-10" % "2.4
 libraryDependencies += "org.json4s" %% "json4s-core" % "3.6.7"
 libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.2.0"
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
+
+excludeDependencies += "org.slf4j" % "slf4j-log4j12" % "1.7.16"

@@ -156,4 +156,3 @@ object Main {
     "enable.auto.commit" -> (true: java.lang.Boolean)
   )
 }
-

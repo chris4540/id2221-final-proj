@@ -48,3 +48,14 @@ services:
       - "3000:3000"
     volumes:
       - ./init-data/grafana-provisioning:/etc/grafana/provisioning
+  # data processing
+  spark:
+    build: .
+    depends_on:
+      - kafka
+      - influxdb
+    environment:
+      KAFKA_URL: kafka:9094
+      INFLUXDB_HOST: influxdb
+      INFLUXDB_PORT: "8086"
+    restart: on-failure

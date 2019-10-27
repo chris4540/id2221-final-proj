@@ -4,4 +4,6 @@
 sleep 1s
 
 python ./comment-scraper.py &
-python ./post-scraper.py
+python ./post-scraper.py &
+
+wait -n
