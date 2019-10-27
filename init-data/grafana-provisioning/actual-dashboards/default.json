@@ -17,7 +17,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1572139967004,
+  "iteration": 1572178169779,
   "links": [],
   "panels": [
     {
@@ -545,8 +545,8 @@
       "datasource": "InfluxDB",
       "fontSize": "100%",
       "gridPos": {
-        "h": 11,
-        "w": 24,
+        "h": 8,
+        "w": 12,
         "x": 0,
         "y": 16
       },
@@ -668,6 +668,115 @@
       "title": "Most Active Post",
       "transform": "table",
       "type": "table"
+    },
+    {
+      "columns": [],
+      "datasource": null,
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 12,
+      "interval": "",
+      "options": {},
+      "pageSize": null,
+      "showHeader": true,
+      "sort": {
+        "col": 1,
+        "desc": true
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "date"
+        },
+        {
+          "alias": "Occurances",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "pattern": "top",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "Word",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "word",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "word"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "measurement": "word_frequency",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT top(\"sum\", \"word\", 10) FROM (SELECT sum(\"count\") FROM \"word_frequency\" WHERE (\"word\" =~ /$wordRegex/) AND $timeFilter GROUP BY \"word\" fill(none))",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "table",
+          "select": [
+            [
+              {
+                "params": [
+                  "count"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Frequently Used Words",
+      "transform": "table",
+      "type": "table"
     }
   ],
   "refresh": "5s",
@@ -680,12 +789,13 @@
         "allValue": null,
         "current": {
           "tags": [],
-          "text": "r/AmItheAsshole + r/AskReddit + r/CFB + r/dankmemes + r/heat + r/memes + r/modernwarfare + r/politics + r/teenagers",
+          "text": "r/AmItheAsshole + r/AskReddit + r/CFB + r/dankmemes + r/europe + r/heat + r/memes + r/modernwarfare + r/politics + r/teenagers",
           "value": [
             "r/AmItheAsshole",
             "r/AskReddit",
             "r/CFB",
             "r/dankmemes",
+            "r/europe",
             "r/heat",
             "r/memes",
             "r/modernwarfare",
@@ -14572,7 +14682,7 @@
             "value": "r/eu4"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "r/europe",
             "value": "r/europe"
           },
@@ -21687,11 +21797,29 @@
         "tagsQuery": "",
         "type": "query",
         "useTags": false
+      },
+      {
+        "current": {
+          "text": ".....",
+          "value": "....."
+        },
+        "hide": 0,
+        "label": null,
+        "name": "wordRegex",
+        "options": [
+          {
+            "text": ".....",
+            "value": "....."
+          }
+        ],
+        "query": ".....",
+        "skipUrlSync": false,
+        "type": "textbox"
       }
     ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -21711,5 +21839,5 @@
   "timezone": "",
   "title": "Reddit Stats",
   "uid": "nsNWHIAZz",
-  "version": 3
+  "version": 1
 }

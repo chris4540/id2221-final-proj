@@ -129,7 +129,7 @@ object Main {
       .map(json => (json \ "body").as[String])
 
     commentContents.union(postContents)
-      .flatMap(_.split("\\s*"))
+      .flatMap(_.split("\\s+"))
       .map(_.toLowerCase())
       .filter(!stopWords.contains(_))
       .map(w => (w, 1))
